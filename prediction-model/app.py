@@ -3,6 +3,7 @@
 import uvicorn ## ASGI (Asynchronous Server Gateway Interface)  It allows Falcon and other Python web frameworks to work with asynchronous web servers and take advantage of asynchronous programming techniques. Synchronous Processing. ASGI is an asynchronous protocol, which means that it allows parallel processing of multiple requests.
 from fastapi import FastAPI
 from StudentsResult import StudentResult
+from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 import pandas as pd
 import pickle
@@ -10,6 +11,18 @@ import pickle
 # 2. Create the app object
 
 app = FastAPI()
+
+# # CORS configuration
+origins = ["http://localhost:5173"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 pickle_in = open("model.pkl","rb")
 model = pickle.load(pickle_in)
 
@@ -34,11 +47,13 @@ def student_placement(data: StudentResult):
     iq = data['iq']
     prediction = model.predict([[cgpa,iq]])
     if(prediction[0] == 1):
-        prediction = "Congratulations! Based on the provided CGPA and IQ, the model predicts that the student will be placed."
+        message = "Congratulations! Based on the provided CGPA and IQ, the model predicts that the student will be placed."
+        # prediction = "Yes"
     else:
-        prediction = "Unfortunately, based on the provided CGPA and IQ, the model predicts that the student will not be placed."
+        message = "Unfortunately, based on the provided CGPA and IQ, the model predicts that the student will not be placed."
+        # prediction = "No"
     return{
-        'prediction': prediction
+        'message': message
     }
 
 # 6. Run the API with uvicorn
