@@ -1,65 +1,22 @@
-# 1. library import 
-
-import uvicorn ## ASGI (Asynchronous Server Gateway Interface)  It allows Falcon and other Python web frameworks to work with asynchronous web servers and take advantage of asynchronous programming techniques. Synchronous Processing. ASGI is an asynchronous protocol, which means that it allows parallel processing of multiple requests.
-from fastapi import FastAPI
-from StudentsResult import StudentResult
-from fastapi.middleware.cors import CORSMiddleware
+import streamlit as st
 import numpy as np
-import pandas as pd
 import pickle
 
-# 2. Create the app object
-
-app = FastAPI()
-
-# # CORS configuration
-origins = ["http://localhost:5173"]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-pickle_in = open("model.pkl","rb")
+# Load the trained model
+pickle_in = open("model.pkl", "rb")
 model = pickle.load(pickle_in)
 
-# 3. Index route, open automatically on http://127.0.0.1:8000
+# Streamlit app
+st.title("Student Placement Prediction")
 
-@app.get('/')
-def index():
-    return{'message':'Hello, World'}
+# Input fields for CGPA and IQ
+cgpa = st.number_input("Enter CGPA", min_value=0.0, max_value=10.0, step=0.1)
+iq = st.number_input("Enter IQ", min_value=50, max_value=200)
 
-# 4. Route with a single parameter, returns the parameter within a message located at: http://127.0.0.1:8000/AnyNameHere
-
-@app.get('/{name}')
-def get_name(name: str):
-    return {'message': f'Hello, {name}'}
-
-# 5. Expose the prediction functionality, make a prediction from the passed JSON data and return the predicted Student Placement with the confidence
-
-@app.post('/predict')
-def student_placement(data: StudentResult):
-    data = data.dict()
-    cgpa = data['cgpa']
-    iq = data['iq']
-    prediction = model.predict([[cgpa,iq]])
-    if(prediction[0] == 1):
-        message = "Congratulations! Based on the provided CGPA and IQ, the model predicts that the student will be placed."
-        # prediction = "Yes"
+# Prediction button
+if st.button("Predict Placement"):
+    prediction = model.predict([[cgpa, iq]])
+    if prediction[0] == 1:
+        st.success("Congratulations! The model predicts that the student will be placed.")
     else:
-        message = "Unfortunately, based on the provided CGPA and IQ, the model predicts that the student will not be placed."
-        # prediction = "No"
-    return{
-        'message': message
-    }
-
-# 6. Run the API with uvicorn
-# Will run on http://127.0.0.1.8000
-
-if __name__ == '__main__':
-    uvicorn.run(app,host='127.0.0.1', port=8000)
-
-# uvicorn app:app --reload (run with this command) or python -m uvicorn app:app --reload
+        st.error("Unfortunately, the model predicts that the student will not be placed.")
